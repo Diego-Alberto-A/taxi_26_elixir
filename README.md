@@ -23,7 +23,7 @@ taxi_26_elixir/
     `-- taxi_fe/
 ```
 
-## Versión recomendada
+## Versión final
 
 La versión final es `v3`.
 
@@ -71,41 +71,4 @@ El frontend normalmente corre en:
 
 ```text
 http://localhost:5173
-```
-
-## Flujo principal en v3
-
-1. El cliente manda una solicitud.
-2. El backend contacta a tres conductores.
-3. Los conductores reciben una tarjeta con la solicitud.
-4. El primer conductor que acepta gana el viaje.
-5. Las demás tarjetas se limpian.
-6. El cliente ve el taxi asignado y el ETA.
-7. El ETA baja cada 30 segundos.
-8. El cliente puede cancelar mientras el taxi va en camino.
-9. Si cancela tarde, se aplica penalización.
-10. Si el taxi llega, se notifica el inicio del viaje.
-
-## Registro de servicios
-
-Los servicios que no terminan exitosamente se registran en:
-
-```text
-v3/taxi_be/service_log.txt
-```
-
-Este archivo se crea automáticamente cuando ocurre el primer caso no exitoso.
-
-## Notas
-
-- `node_modules`, `_build`, `deps` y otros archivos generados están ignorados por Git.
-- La solución mantiene cada versión separada para que sea fácil revisar la evolución.
-- El archivo de log es intencionalmente simple. Para producción sería mejor usar base de datos.
-
-## Repositorio
-
-Liga del repositorio:
-
-```text
-PEGAR_AQUI_LA_LIGA_DEL_REPOSITORIO
 ```
