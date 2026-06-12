@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import Button from '@mui/material/Button';
 
 import socket from '../services/taxi_socket';
@@ -8,16 +8,35 @@ function Driver(props) {
   let [message, setMessage] = useState();
   let [bookingId, setBookingId] = useState();
   let [visible, setVisible] = useState(false);
+  let bookingIdRef = useRef();
+
   useEffect(() => {
     let channel = socket.channel("driver:" + props.username, {token: "123"});
+
     channel.on("booking_request", data => {
-      console.log("Received", data);
+      console.log(`Request received by ${props.username}`, data);
       setMessage(data.msg);
       setBookingId(data.bookingId);
+      bookingIdRef.current = data.bookingId;
       setVisible(true);
     });
+
+    channel.on("booking_request_closed", data => {
+      if (data.bookingId === bookingIdRef.current) {
+        console.log(`Request closed for ${props.username}`, data);
+        setVisible(false);
+        setMessage();
+        setBookingId();
+        bookingIdRef.current = undefined;
+      }
+    });
+
     channel.join();
-  },[props]);
+
+    return () => {
+      channel.leave();
+    };
+  },[props.username]);
 
   let reply = (decision) => {
     fetch(`http://localhost:4000/api/bookings/${bookingId}`, {

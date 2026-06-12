@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import Button from '@mui/material/Button'
 
 import socket from '../services/taxi_socket';
@@ -9,6 +9,31 @@ function Customer(props) {
   let [dropOffAddress, setDropOffAddress] = useState("Triangulo Las Animas, Puebla, Mexico");
   let [msg, setMsg] = useState("");
   let [msg1, setMsg1] = useState("");
+  let activeBookingIdRef = useRef();
+  let timeoutRef = useRef();
+
+  let clearBookingTimeout = (bookingId) => {
+    if (!bookingId || activeBookingIdRef.current === bookingId) {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = undefined;
+      activeBookingIdRef.current = undefined;
+    }
+  };
+
+  let scheduleBookingTimeout = (bookingId) => {
+    clearBookingTimeout();
+    activeBookingIdRef.current = bookingId;
+
+    timeoutRef.current = setTimeout(() => {
+      if (activeBookingIdRef.current === bookingId) {
+        setMsg1("Lo sentimos, no fue posible asignarte un taxi en este momento.");
+        clearBookingTimeout(bookingId);
+      }
+    }, 90_000);
+  };
 
   useEffect(() => {
     let channel = socket.channel("customer:" + props.username, {token: "123"});
@@ -16,16 +41,32 @@ function Customer(props) {
     channel.on("booking_request", dataFromPush => {
       console.log("Received", dataFromPush);
       setMsg1(dataFromPush.msg);
+
+      if (dataFromPush.status === "accepted" || dataFromPush.status === "failed") {
+        clearBookingTimeout(dataFromPush.bookingId);
+      }
     });
     channel.join();
-  },[props]);
+
+    return () => {
+      clearBookingTimeout();
+      channel.leave();
+    };
+  },[props.username]);
 
   let submit = () => {
     fetch(`http://localhost:4000/api/bookings`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({pickup_address: pickupAddress, dropoff_address: dropOffAddress, username: props.username})
-    }).then(resp => resp.json()).then(dataFromPOST => setMsg(dataFromPOST.msg));
+    }).then(resp => resp.json()).then(dataFromPOST => {
+      setMsg(dataFromPOST.msg);
+      setMsg1("");
+
+      if (dataFromPOST.bookingId) {
+        scheduleBookingTimeout(dataFromPOST.bookingId);
+      }
+    });
   };
 
   return (
